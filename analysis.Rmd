@@ -1,0 +1,39 @@
+---
+title: "analysis"
+output: html_document
+---
+
+```{r loading_libraries, echo=FALSE}
+library(dplyr)
+library(tidytext)
+library(janeaustenr)
+library(stringr)
+library(ggplot2)
+library(gutenbergr)
+library(tidyr)
+library(scales)
+library(ggthemes)
+library(magrittr)
+```
+
+```{r gutenberg_corpus_download, echo=FALSE}
+louisa <- gutenberg_download(c(28203, 8188, 37106, 2787, 2788, 4770, 38567, 41127, 3795, 2786), mirror = "http://mirrors.xmission.com/gutenberg/", meta_fields = c("title", "author"))
+twain <- gutenberg_download(c(3178, 74, 1837, 76, 86, 3179, 102, 91, 93), mirror = "http://mirrors.xmission.com/gutenberg/", meta_fields = c("title", "author"))
+```
+
+```{r corpus_creation, echo=FALSE}
+louisa_token <- louisa %>%
+  group_by(author, title) %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words) %>%
+  count(word, sort = FALSE)
+
+twain_token <- twain %>%
+  group_by(author, title) %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words) %>%
+  count(word, sort = FALSE)
+
+write.csv(louisa_token, "louisa.csv")
+write.csv(twain_token, "twain.csv")
+```
