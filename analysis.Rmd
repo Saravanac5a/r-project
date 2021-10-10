@@ -14,6 +14,7 @@ library(tidyr)
 library(scales)
 library(ggthemes)
 library(magrittr)
+library(tidyverse)
 ```
 
 ```{r gutenberg_corpus_download, echo=FALSE}
@@ -36,4 +37,139 @@ twain_token <- twain %>%
 
 write.csv(louisa_token, "louisa.csv")
 write.csv(twain_token, "twain.csv")
+```
+
+```{r lexicon_definition, echo=FALSE}
+domestic_words_twain <- c("home","door","bed", "knife", "window", "hall", "chair", "palace", "house")
+domestic_twain_df <- data.frame(word = domestic_words_twain, domestic = TRUE)
+outdoor_words_twain <- c("river","raft","woods","nature","boat","cave","sand","canoe","stream","shore","hill","railroad","steamboat","sea","mud","road","water","leaves","bank","wind","sun")
+outdoor_twain_df <- data.frame(word = outdoor_words_twain, outdoor = TRUE)
+domestic_words_louisa <- c("home","room","house","door","bed","table","window","corner","chair","hall","sofa","parlor","wall","supper")
+domestic_louisa_df <- data.frame(word = domestic_words_louisa, domestic = TRUE)
+outdoor_words_louisa <- c("wild","flowers","walk","nature","wind","garden","moor","sea","leaves","boat","town","carriage","moss","grass","river","hill","city")
+outdoor_louisa_df <- data.frame(word = outdoor_words_louisa, outdoor = TRUE)
+```
+
+
+```{r tagged_words, echo=TRUE}
+twain_tagged <- twain %>%
+  left_join(domestic_twain_df) %>%
+  left_join(outdoor_twain_df)
+
+louisa_tagged <- louisa %>%
+  left_join(domestic_louisa_df) %>%
+  left_join(outdoor_louisa_df)
+
+write.csv(twain_tagged, "twain.csv")
+write.csv(louisa_tagged, "louisa.csv")
+```
+
+```{r sentences, echo=TRUE}
+twain_sentences <- twain %>%
+  group_by(author,title,text) %>%
+  summarise (text = paste(text, collapse = "")) %>%
+  unnest_regex(sentences, text, pattern = "[.?!]", to_lower = FALSE)
+
+louisa_sentences <- louisa %>%
+  group_by(author,title,text) %>%
+  summarise (text = paste(text, collapse = "")) %>%
+  unnest_regex(sentences, text, pattern = "[.?!]", to_lower = FALSE)
+```
+
+```{r sentence_nr, echo=TRUE}
+twain_sentence_nr <- twain_sentences %>%
+  ungroup() %>%
+  mutate(sentence_number = row_number()) %>%
+  group_by(author, title, sentence_number) %>%
+  unnest_tokens(word, sentences) %>%
+  anti_join(stop_words)
+
+louisa_sentence_nr <- louisa_sentences %>%
+  ungroup() %>%
+  mutate(sentence_number = row_number()) %>%
+  group_by(author, title, sentence_number) %>%
+  unnest_tokens(word, sentences) %>%
+  anti_join(stop_words)
+```
+
+```{r concept, echo=TRUE}
+twain_concept <- twain_sentence_nr %>%
+  left_join(domestic_twain_df) %>%
+  left_join(outdoor_twain_df)
+
+louisa_concept <- louisa_sentence_nr %>%
+  left_join(domestic_louisa_df) %>%
+  left_join(outdoor_louisa_df)
+```
+
+```{r concept_sentiment, echo=TRUE}
+twain_concept_sentiment <- twain_concept %>%
+  inner_join(get_sentiments("bing"))
+
+louisa_concept_sentiment <- louisa_concept %>%
+  inner_join(get_sentiments("bing"))
+```
+
+```{r sentiment_total, echo=TRUE}
+twain_sentiment_total <- twain_concept_sentiment %>%
+  count(sentence_number, sentiment) %>%
+  pivot_wider(names_from = sentiment,
+              values_from = n,
+              values_fill = 0)  %>%
+  mutate(sentiment = positive - negative) %>%
+  left_join(twain_concept) %>%
+  filter(domestic == TRUE | outdoor == TRUE)
+
+louisa_sentiment_total <- louisa_concept_sentiment %>%
+  count(sentence_number, sentiment) %>%
+  pivot_wider(names_from = sentiment,
+              values_from = n,
+              values_fill = 0)  %>%
+  mutate(sentiment = positive - negative) %>%
+  left_join(twain_concept) %>%
+  filter(domestic == TRUE | outdoor == TRUE)
+```
+
+```{r sentiment_table, echo=TRUE}
+twain_sentiment_table <- twain_sentiment_total %>%
+  pivot_longer(domestic:outdoor,
+               names_to = "concept",
+               values_to = "total_sentiment")  %>%
+  drop_na() %>%
+  group_by(author, concept) %>%
+  summarise (total = sum(sentiment)) %>%
+  ungroup()
+
+louisa_sentiment_table <- louisa_sentiment_total %>%
+  pivot_longer(domestic:outdoor,
+               names_to = "concept",
+               values_to = "total_sentiment")  %>%
+  drop_na() %>%
+  group_by(author, concept) %>%
+  summarise (total = sum(sentiment)) %>%
+  ungroup()
+```
+
+```{r sentiment_plot, echo=TRUE}
+twain_sentiment_table %>%
+  ggplot(aes(title, y = total)) +
+  geom_col(color = "black",
+           alpha = .7,
+           position = "identity") +
+  facet_wrap(~ concept) +
+  labs(title = "Positive and Negative Sentiment by Concept",
+       x = "Overal Sentiment",
+       y = "Author") +
+  coord_flip()
+
+louisa_sentiment_table %>%
+  ggplot(aes(title, y = total)) +
+  geom_col(color = "black",
+           alpha = .7,
+           position = "identity") +
+  facet_wrap(~ concept) +
+  labs(title = "Positive and Negative Sentiment by Concept",
+       x = "Overal Sentiment",
+       y = "Author") +
+  coord_flip()
 ```
