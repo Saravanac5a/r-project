@@ -30,6 +30,9 @@ louisa_token <- louisa %>%
   anti_join(stop_words) %>%
   count(word, sort = FALSE)
 
+twain$author <- twain$author %>%
+  replace_na("Twain, Mark")
+
 twain_token <- twain %>%
   group_by(author, title) %>%
   unnest_tokens(word, text) %>%
@@ -56,6 +59,22 @@ louisa_tagged <- louisa_token %>%
 
 write.csv(twain_tagged, "twain.csv")
 write.csv(louisa_tagged, "louisa.csv")
+```
+
+```{r calculate_words}
+twain_table <- twain_tagged %>% 
+                     group_by(author) %>% 
+                     count(domestic, outdoor) %>% 
+                     mutate (percent = n/sum(n)*100)
+
+twain_table
+
+louisa_table <- louisa_tagged %>% 
+                     group_by(author) %>% 
+                     count(domestic, outdoor) %>% 
+                     mutate (percent = n/sum(n)*100)
+
+louisa_table
 ```
 
 ```{r sentences, echo=TRUE}
@@ -136,7 +155,7 @@ twain_sentiment_table <- twain_sentiment_total %>%
                names_to = "concept",
                values_to = "total_sentiment")  %>%
   drop_na() %>%
-  group_by(author, concept) %>%
+  group_by(author, title, concept) %>%
   summarise (total = sum(sentiment)) %>%
   ungroup()
 
@@ -145,23 +164,25 @@ louisa_sentiment_table <- louisa_sentiment_total %>%
                names_to = "concept",
                values_to = "total_sentiment")  %>%
   drop_na() %>%
-  group_by(author, concept) %>%
+  group_by(author, title, concept) %>%
   summarise (total = sum(sentiment)) %>%
   ungroup()
 
 sentiment_table <- rbind(twain_sentiment_table, louisa_sentiment_table)
+sentiment_table
 ```
 
 ```{r sentiment_plot, echo=TRUE}
-sentiment_table %>%
-  ggplot(aes(author, y = total)) +
+twain_sentiment_table %>%
+  ggplot(aes(author, y = total, fill = title)) +
   geom_col(color = "black",
            alpha = .7,
            position = "identity") +
   facet_wrap(~ concept) +
   labs(title = "Positive and Negative Sentiment by Concept",
        x = "Overal Sentiment",
-       y = "Author") +
+       y = "Author",
+       fill = "Title") +
   coord_flip()
 ```
 
@@ -171,7 +192,7 @@ twain_sentiment_total_nrc <- twain_concept_sentiment_nrc %>%
   pivot_wider(names_from = sentiment,
               values_from = n,
               values_fill = 0)  %>%
-  #mutate(sentiment = positive + joy + surprise + trust + anticipation - negative - anger - fear - sadness - disgust) %>%
+  mutate(sentiment = positive + joy + surprise + trust + anticipation - negative - anger - fear - sadness - disgust) %>%
   left_join(twain_concept) %>%
   filter(domestic == TRUE | outdoor == TRUE)
 
@@ -180,7 +201,7 @@ louisa_sentiment_total_nrc <- louisa_concept_sentiment_nrc %>%
   pivot_wider(names_from = sentiment,
               values_from = n,
               values_fill = 0)  %>%
-  #mutate(sentiment = positive + joy + surprise + trust + anticipation - negative - anger - fear - sadness - disgust) %>%
+  mutate(sentiment = positive + joy + surprise + trust + anticipation - negative - anger - fear - sadness - disgust) %>%
   left_join(louisa_concept) %>%
   filter(domestic == TRUE | outdoor == TRUE)
 ```
@@ -215,7 +236,62 @@ sentiment_table %>%
            position = "identity") +
   facet_wrap(~ concept) +
   labs(title = "Positive and Negative Sentiment by Concept",
-       x = "Positive Sentiment",
+       x = "Overall Sentiment",
+       y = "Author") +
+  coord_flip()
+```
+
+```{r sentiment_total, echo=TRUE}
+twain_sentiment_total_title <- twain_concept_sentiment %>%
+  count(sentence_number, sentiment) %>%
+  pivot_wider(names_from = sentiment,
+              values_from = n,
+              values_fill = 0)  %>%
+  mutate(sentiment = positive - negative) %>%
+  left_join(twain_concept) %>%
+  filter(domestic == TRUE | outdoor == TRUE)
+
+louisa_sentiment_total_title <- louisa_concept_sentiment %>%
+  count(sentence_number, sentiment) %>%
+  pivot_wider(names_from = sentiment,
+              values_from = n,
+              values_fill = 0)  %>%
+  mutate(sentiment = positive - negative) %>%
+  left_join(louisa_concept) %>%
+  filter(domestic == TRUE | outdoor == TRUE)
+```
+
+```{r sentiment_table, echo=TRUE}
+twain_sentiment_table_title <- twain_sentiment_total_title %>%
+  pivot_longer(domestic:outdoor,
+               names_to = "concept",
+               values_to = "total_sentiment")  %>%
+  drop_na() %>%
+  group_by(author, concept) %>%
+  summarise (total = sum(sentiment)) %>%
+  ungroup()
+
+louisa_sentiment_table_nrc <- louisa_sentiment_total_nrc %>%
+  pivot_longer(domestic:outdoor,
+               names_to = "concept",
+               values_to = "total_sentiment")  %>%
+  drop_na() %>%
+  group_by(author, concept) %>%
+  summarise (total = sum(sentiment)) %>%
+  ungroup()
+
+sentiment_table <- rbind(twain_sentiment_table_nrc, louisa_sentiment_table_nrc)
+```
+
+```{r sentiment_plot, echo=TRUE}
+sentiment_table %>%
+  ggplot(aes(author, y = total)) +
+  geom_col(color = "black",
+           alpha = .7,
+           position = "identity") +
+  facet_wrap(~ concept) +
+  labs(title = "Positive and Negative Sentiment by Concept",
+       x = "Overall Sentiment",
        y = "Author") +
   coord_flip()
 ```
