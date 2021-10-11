@@ -35,31 +35,24 @@ twain_token <- twain %>%
   unnest_tokens(word, text) %>%
   anti_join(stop_words) %>%
   count(word, sort = FALSE)
-
-write.csv(louisa_token, "louisa.csv")
-write.csv(twain_token, "twain.csv")
 ```
 
 ```{r lexicon_definition, echo=FALSE}
-domestic_words_twain <- c("home","door","bed", "knife", "window", "hall", "chair", "palace", "house")
-domestic_twain_df <- data.frame(word = domestic_words_twain, domestic = TRUE)
-outdoor_words_twain <- c("river","raft","woods","nature","boat","cave","sand","canoe","stream","shore","hill","railroad","steamboat","sea","mud","road","water","leaves","bank","wind","sun")
-outdoor_twain_df <- data.frame(word = outdoor_words_twain, outdoor = TRUE)
-domestic_words_louisa <- c("home","room","house","door","bed","table","window","corner","chair","hall","sofa","parlor","wall","supper")
-domestic_louisa_df <- data.frame(word = domestic_words_louisa, domestic = TRUE)
-outdoor_words_louisa <- c("wild","flowers","walk","nature","wind","garden","moor","sea","leaves","boat","town","carriage","moss","grass","river","hill","city")
-outdoor_louisa_df <- data.frame(word = outdoor_words_louisa, outdoor = TRUE)
+domestic_words <- c("home","door","bed","knife","window","hall","chair","palace","house","room","table","window","corner","chair","sofa","parlor","wall","supper")
+domestic_df <- data.frame(word = domestic_words, domestic = TRUE)
+outdoor_words <- c("river","raft","woods","boat","cave","sand","canoe","stream","shore","hill","railroad","steamboat","sea","mud","road","bank","sun","wild","moor","town","carriage","moss","city")
+outdoor_df <- data.frame(word = outdoor_words, outdoor = TRUE)
 ```
 
 
 ```{r tagged_words, echo=TRUE}
-twain_tagged <- twain %>%
-  left_join(domestic_twain_df) %>%
-  left_join(outdoor_twain_df)
+twain_tagged <- twain_token %>%
+  left_join(domestic_df) %>%
+  left_join(outdoor_df)
 
-louisa_tagged <- louisa %>%
-  left_join(domestic_louisa_df) %>%
-  left_join(outdoor_louisa_df)
+louisa_tagged <- louisa_token %>%
+  left_join(domestic_df) %>%
+  left_join(outdoor_df)
 
 write.csv(twain_tagged, "twain.csv")
 write.csv(louisa_tagged, "louisa.csv")
@@ -95,12 +88,12 @@ louisa_sentence_nr <- louisa_sentences %>%
 
 ```{r concept, echo=TRUE}
 twain_concept <- twain_sentence_nr %>%
-  left_join(domestic_twain_df) %>%
-  left_join(outdoor_twain_df)
+  left_join(domestic_df) %>%
+  left_join(outdoor_df)
 
 louisa_concept <- louisa_sentence_nr %>%
-  left_join(domestic_louisa_df) %>%
-  left_join(outdoor_louisa_df)
+  left_join(domestic_df) %>%
+  left_join(outdoor_df)
 ```
 
 ```{r concept_sentiment, echo=TRUE}
