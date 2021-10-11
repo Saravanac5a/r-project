@@ -15,6 +15,7 @@ library(scales)
 library(ggthemes)
 library(magrittr)
 library(tidyverse)
+library(textdata)
 ```
 
 ```{r gutenberg_corpus_download, echo=FALSE}
@@ -126,7 +127,7 @@ louisa_sentiment_total <- louisa_concept_sentiment %>%
               values_from = n,
               values_fill = 0)  %>%
   mutate(sentiment = positive - negative) %>%
-  left_join(twain_concept) %>%
+  left_join(louisa_concept) %>%
   filter(domestic == TRUE | outdoor == TRUE)
 ```
 
@@ -148,22 +149,13 @@ louisa_sentiment_table <- louisa_sentiment_total %>%
   group_by(author, concept) %>%
   summarise (total = sum(sentiment)) %>%
   ungroup()
+
+sentiment_table <- rbind(twain_sentiment_table, louisa_sentiment_table)
 ```
 
 ```{r sentiment_plot, echo=TRUE}
-twain_sentiment_table %>%
-  ggplot(aes(title, y = total)) +
-  geom_col(color = "black",
-           alpha = .7,
-           position = "identity") +
-  facet_wrap(~ concept) +
-  labs(title = "Positive and Negative Sentiment by Concept",
-       x = "Overal Sentiment",
-       y = "Author") +
-  coord_flip()
-
-louisa_sentiment_table %>%
-  ggplot(aes(title, y = total)) +
+sentiment_table %>%
+  ggplot(aes(author, y = total)) +
   geom_col(color = "black",
            alpha = .7,
            position = "identity") +
