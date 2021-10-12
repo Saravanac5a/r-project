@@ -77,6 +77,123 @@ louisa_table <- louisa_tagged %>%
 louisa_table
 ```
 
+```{r bind rows}
+all_authors <- bind_rows(twain_table, louisa_table)
+```
+
+```{r bind rows}
+all_authors_tagged <- bind_rows(twain_tagged, louisa_tagged)
+```
+
+```{r relative_frequency_long}
+all_authors_frequency <- all_authors_tagged %>%
+  group_by(title) %>%
+  add_count(name = "length") %>%
+  mutate(domestic_count = sum(domestic, na.rm = TRUE)) %>%
+  mutate(relative_frequency = domestic_count / length) %>%
+  select(author, title, relative_frequency) %>%
+  distinct()
+                          
+```
+
+```{r basic_histogram}
+all_authors_frequency %>%
+  ggplot(aes(relative_frequency)) +
+  geom_histogram()
+```
+```{r histogram_gender}
+all_authors_frequency %>%
+  ggplot(aes(relative_frequency, fill = author)) +
+  geom_histogram()
+```
+```{r histogram_authors}
+all_authors_frequency %>%
+  ggplot(aes(relative_frequency, fill = author)) +
+  geom_histogram(color = "black",
+                 alpha = .5,
+                 position = "identity")
+```
+```{r}
+all_authors_frequency %>%
+  ggplot(aes(relative_frequency, fill = author))+ 
+  geom_histogram(color = "black",
+    alpha = .5,
+    position = "identity")+
+  facet_wrap(~author)
+```
+
+```{r frequency_buckets}
+all_authors_frequency %>%
+  ggplot(aes(relative_frequency, fill = author))+ 
+  geom_histogram(color = "black",
+    alpha = .5,
+    position = "identity",
+    bins = 5)+
+  labs(title = "Histogram",
+       x = "Relative Frequency of Domestic Words",
+       y = "Number of Texts",
+       fill = "Author") +
+  facet_wrap(~author)
+```
+```{r histogram_styled}
+all_authors_frequency %>%
+  ggplot(aes(relative_frequency, fill = author))+ 
+  geom_histogram(color = "black",
+    alpha = .5,
+    position = "identity",
+    bins = 5)+
+  labs(title = "Domestic Words by Author",
+       x = "Relative Frequency of Domestic Words",
+       y = "Number of Texts",
+       fill = "Author") +
+  facet_wrap(~author)
+```
+```{r chart_themes_538}
+all_authors_frequency %>%
+  ggplot(aes(relative_frequency, fill = author)) +
+  geom_histogram(
+    color = "black",
+    alpha = .5,
+    position = "identity",
+    bins = 5
+  ) +
+  labs(title = "Domestic Words by Author",
+       x = "Relative Frequency of Domestic Words",
+       y = "Number of Texts",
+       fill = "Author") +
+  facet_wrap( ~author) +
+  theme_fivethirtyeight()
+```
+```{r histogram_domestic_outdoor}
+all_authors_tagged %>%
+  group_by(author, title) %>%
+  #Run the same summary function, but instead of only creating one column                      create two.
+  summarise(
+    domestic = sum(domestic, na.rm = TRUE) / n(),
+    outdoor = sum(outdoor, na.rm = TRUE) / n()
+  ) %>%
+  #Pivot the table longer and put the column names next to their relative                      frequency values.
+  pivot_longer(domestic:outdoor,
+               names_to = "concept",
+               values_to = "relative_frequency") %>%
+  #Clean up the variable by capitalizing them.
+  mutate(author = str_to_title(author), concept =
+           str_to_title(concept)) %>%
+  ggplot(aes(relative_frequency, fill = author)) +
+  geom_histogram(
+    color = "black",
+    alpha = .5,
+    position = "identity",
+    bins = 5
+  ) +
+  labs(title = "Domestic and Outdoor by Author",
+       x = "Relative Frequency of Domestic and Outdoor Words",
+       y = "Number of Texts",
+       fill = "Author") +
+  facet_wrap(vars(author, concept)) +
+  theme_clean()
+```
+
 ```{r sentences, echo=TRUE}
 twain_sentences <- twain %>%
   group_by(author,title,text) %>%
@@ -121,7 +238,9 @@ twain_concept_sentiment <- twain_concept %>%
 
 louisa_concept_sentiment <- louisa_concept %>%
   inner_join(get_sentiments("bing"))
+```
 
+```{r}
 twain_concept_sentiment_nrc <- twain_concept %>%
   inner_join(get_sentiments("nrc"))
 
@@ -172,6 +291,41 @@ sentiment_table <- rbind(twain_sentiment_table, louisa_sentiment_table)
 sentiment_table
 ```
 
+```{r bind rows}
+all_authors_sentiment_table <- bind_rows(twain_sentiment_table, louisa_sentiment_table)
+```
+
+```{r author_sentiment_plot}
+all_authors_sentiment_table %>%
+  ggplot(aes(title, y = total, fill = author)) +
+  geom_col(color = "black",
+           alpha = .7,
+           position = "identity") +
+  facet_wrap(~ concept) +
+  labs(title = "Domestic and Outdoor Sentiment by Concept",
+       x = "Overal Sentiment",
+       y = "titler",
+       fill = "author") +
+  coord_flip() 
+```
+```{r final_chart}
+all_authors_sentiment_table %>%
+  mutate(author = str_to_title(author)) %>%
+  mutate(concept = str_to_title(concept)) %>%
+  ggplot(aes(reorder(title, -total), y = total, fill = author)) +
+  geom_col(color = "black",
+           alpha = .7,
+           position = "identity") +
+  facet_wrap(~ concept) +
+  labs(title = "Domestic and Outdoor Sentiment by Concept",
+       x = "Overal Sentiment",
+       y = "Title",
+       fill = "author") +
+  scale_fill_brewer(palette = "Dark2") +
+  coord_flip() +
+  theme_hc()
+```
+
 ```{r sentiment_plot, echo=TRUE}
 twain_sentiment_table %>%
   ggplot(aes(author, y = total, fill = title)) +
@@ -212,7 +366,7 @@ twain_sentiment_table_nrc <- twain_sentiment_total_nrc %>%
                names_to = "concept",
                values_to = "total_sentiment")  %>%
   drop_na() %>%
-  group_by(author, concept) %>%
+  group_by(title, concept) %>%
   summarise (total = sum(sentiment)) %>%
   ungroup()
 
@@ -221,12 +375,31 @@ louisa_sentiment_table_nrc <- louisa_sentiment_total_nrc %>%
                names_to = "concept",
                values_to = "total_sentiment")  %>%
   drop_na() %>%
-  group_by(author, concept) %>%
+  group_by(title, concept) %>%
   summarise (total = sum(sentiment)) %>%
   ungroup()
 
 sentiment_table <- rbind(twain_sentiment_table_nrc, louisa_sentiment_table_nrc)
 ```
+#total table nrc
+
+```{r bind rows}
+all_authors_sentiment_table_nrc <- bind_rows(twain_sentiment_table_nrc, louisa_sentiment_table_nrc)
+```
+
+```{r all_authors_nrc, echo=TRUE}
+sentiment_table %>%
+  ggplot(aes(title, y = total)) +
+  geom_col(color = "black",
+           alpha = .7,
+           position = "identity") +
+  facet_wrap(~ concept) +
+  labs(title = "Positive and Negative Sentiment by Concept",
+       x = "Overall Sentiment",
+       y = "title") +
+  coord_flip()
+```
+#till here
 
 ```{r sentiment_plot, echo=TRUE}
 sentiment_table %>%
