@@ -23,9 +23,42 @@ library(ggthemes)
 library(magrittr)
 library(tidyverse)
 library(textdata)
+
+library(dplyr)
+library(readr)
+library(tidygeocoder)
+library(tidyr)
+library(leaflet)
+library(rmdformats)
+
+library(rJava)
+library(openNLP)
+library(NLP)
+
+
+#Tidy data manipulation
+library(stringr)
+library(dplyr)
+library(tidyr)
+library(tidytext)
+library(readr)
+library(stringi)
+library(textclean)
+
+#Corpus ingest
+library(gutenbergr)
+
+#Helper library
+library(sqldf)
+
+#Graphics library
+library(ggiraphExtra)
+library(ggplot2)
+library(RColorBrewer)
+library(scales)
 ```
 
-```{r gutenberg_corpus_download, include=FALSE}
+```{r gutenberg_corpus_download_1, include=FALSE}
 #louisa <- gutenberg_download(c(28203, 8188, 37106, 2787, 2788, 4770, 38567, 41127, 3795, 2786), mirror = "http://mirrors.xmission.com/gutenberg/", meta_fields = c("title", "author"))
 #twain <- gutenberg_download(c(3178, 74, 1837, 76, 86, 3179, 102, 91, 93), mirror = "http://mirrors.xmission.com/gutenberg/", meta_fields = c("title", "author"))
 louisa <- read.csv("louisa.csv")
@@ -122,18 +155,20 @@ Given that Louisa May Alcott tends to write more intensely about the indoor spac
 
 Our corpus comprises 10 books by Louisa May Alcott and 9 books by Mark Twain. We were motivated by two reasons in choosing the authors. First, we wanted to be mindful of the time overlap between them, given word usage and popularity changes with time. Alcott’s novels span 1865-1886 and Twain’s novels span 1873-1896. Second, we wanted to use authors that deal differently with the indoors and outdoors. Louisa May Alcott, being female and upper-middle class, wrote more about the domestic space as compared to Mark Twain. Mark Twain, being male and lower class, wrote more plots set outdoors. We want to explore if a difference in setting brings with it a difference in the sentiment surrounding that setting. 
 
-It’s also interesting to note that given the gender identities of the two authors, the indoor and outdoor space tends to imply multifarious gender roles for each of them. While the domestic space can act as a refuge for women, the outdoors can do the same for men of that time. Virginia Woolf’s Room of One’s Own is a seminal work, which talks about the importance of solitary space for women, acting as a catapult for creativity and imagination, whereas a lack of ‘one’s own’ space curbs the same. On the contrary, the overwhelming number of works about the adventures of men in the wild, including Tom Sawyer, Robinson Crusoe, Gulliver amongst many, act as their source of free-spirited inspiration. This intuitively affects the sentiments surrounding the indoor and outdoor space for men and women, which we intend to explore through our project.
+It’s also interesting to note that given the gender identities of the two authors, the indoor and outdoor space tends to imply multifarious gender roles for each of them. While the domestic space can act as a refuge for women, the outdoors can do the same for men of that time. Virginia Woolf’s *Room of One’s Own* is a seminal work, which talks about the importance of solitary space for women, acting as a catapult for creativity and imagination, whereas a lack of ‘one’s own’ space curbs the same. On the contrary, the overwhelming number of works about the adventures of men in the wild, including *Tom Sawyer, Robinson Crusoe, Gulliver* amongst many, act as their source of free-spirited inspiration. This intuitively affects the sentiments surrounding the indoor and outdoor space for men and women, which we intend to explore through our project.
 
 ## Summary
 
-To prove/disprove our hypothesis, the project uses the works of Mark Twain and Louisa May Alcott. The corpus comprises 9 books by Mark Twain and 10 books by Louisa May Alcott, amounting to 7,13,763 and 974,787 total words respectively. There are two word lexicons. One proxies for the domestic space, and contains 19 words such as “bed”, “knife”, “chair”, “table” and “sofa”. The other proxies for the outdoor space and contains 23 words such as “river”, “raft”, “sand”, “boat” and “mud”. On performing some basic descriptive stats, we find that the percentage of domestic words relative to total words is 0.22% for Twain and 0.22% for Alcott. The percentage of outdoor words relative to total words is 0.24% for Twain and 0.21% for Alcott. It is a very rudimentary finding, the limitations of which are discussed in the reflection. Nonetheless, it gives us a crude starting point - that the relative frequency of domestic words compared to outdoor words is slightly higher for Alcott and lower for Twain. This is also communicated graphically. We see below that the number of works by Twain with a relative frequency of 0 domestic words is slightly higher than that of those by Alcott.
+To prove/disprove our hypothesis, the project uses the works of Mark Twain and Louisa May Alcott. The corpus comprises 9 books by Mark Twain and 10 books by Louisa May Alcott, amounting to 713,763 and 974,787 total words respectively. There are two word lexicons. One proxies for the domestic space, and contains 19 words such as “bed”, “knife”, “chair”, “table” and “sofa”. The other proxies for the outdoor space and contains 23 words such as “river”, “raft”, “sand”, “boat” and “mud”. On performing some basic descriptive stats, we find that the percentage of domestic words relative to total words is 0.22% for Twain and 0.22% for Alcott. The percentage of outdoor words relative to total words is 0.24% for Twain and 0.21% for Alcott. It is a very rudimentary finding, the limitations of which are discussed in the reflection. Nonetheless, it gives us a crude starting point - that the relative frequency of domestic words compared to outdoor words is slightly higher for Alcott and lower for Twain. This is also communicated graphically. We see below that the number of works by Twain with a relative frequency of 0 domestic words is slightly higher than that of those by Alcott.
 
 ```{r histogram_authors, echo=FALSE, message=FALSE, warning=FALSE, fig.align="center"}
 all_authors_frequency %>%
   ggplot(aes(relative_frequency, fill = author)) +
   geom_histogram(color = "black",
                  alpha = .5,
-                 position = "identity")
+                 position = "identity")+
+  scale_fill_brewer(palette = "Dark2")
+  
 ```
 ```{r, include=FALSE}
 all_authors_frequency %>%
@@ -141,6 +176,7 @@ all_authors_frequency %>%
   geom_histogram(color = "black",
     alpha = .5,
     position = "identity")+
+  scale_fill_brewer(palette = "Dark2")+
   facet_wrap(~author)
 ```
 
@@ -168,6 +204,7 @@ all_authors_frequency %>%
        x = "Relative Frequency of Domestic Words",
        y = "Number of Texts",
        fill = "Author") +
+  scale_fill_brewer(palette = "Dark2")+
   facet_wrap(~author)
 ```
 ```{r chart_themes_538,include=FALSE}
@@ -183,6 +220,7 @@ all_authors_frequency %>%
        x = "Relative Frequency of Domestic Words",
        y = "Number of Texts",
        fill = "Author") +
+  scale_fill_brewer(palette = "Dark2")+
   facet_wrap( ~author) +
   theme_fivethirtyeight()
 ```
@@ -211,10 +249,12 @@ all_authors_tagged %>%
     position = "identity",
     bins = 5
   ) +
+  scale_fill_brewer(palette = "Dark2")+
   labs(title = "Domestic and Outdoor by Author",
        x = "Relative Frequency of Domestic and Outdoor Words",
        y = "Number of Texts",
-       fill = "Author") +
+       fill = "Author")+
+  scale_fill_brewer(palette = "Dark2")+
   facet_wrap(vars(author, concept)) +
   theme_clean()
 ```
@@ -371,6 +411,426 @@ all_authors_sentiment_table %>%
 
 ## Data Visualization 2 - NER
 
+```{r gutenberg_corpus_download, include=FALSE}
+louisa_and_twain <- gutenberg_download(c(28203, 8188, 37106, 2787, 2788, 4770, 38567, 41127, 3795, 2786, 3178, 74, 1837, 76, 86, 3179, 102, 91, 93), mirror = "http://mirrors.xmission.com/gutenberg/", meta_fields = c("title", "author"))
+```
+
+```{r pre_clean_corpus, include=FALSE}
+#cleaning the corpus
+louisa_and_twain_clean <- louisa_and_twain %>%
+  filter(text != "") %>%
+mutate(text = str_replace_all(text, "_", " ")) 
+```
+
+
+```{r create_strings, include=FALSE}
+#### Collapse text column
+louisa_and_twain_text <-louisa_and_twain_clean %>%
+ group_by(title) %>%
+  mutate(text = paste(as.character(text), collapse = " ")) %>%
+  distinct() %>%
+  ungroup()
+```
+
+#### Convert to nested String object
+
+```{r create_nested_string, include=FALSE}
+louisa_and_twain_text_str <- louisa_and_twain_text %>%
+  group_by(title) %>%
+  mutate(text = list(as.String(text)))
+```
+
+```{r initiate_pipeline, include=FALSE}
+#set pipeline
+wordAnnotator <- Maxent_Word_Token_Annotator(language = "en")
+sentenceAnnotator <- Maxent_Sent_Token_Annotator(language = "en")
+characterAnnotatorEN <- Maxent_Entity_Annotator(language = "en", kind = "person")
+locationAnnotatorEN <- Maxent_Entity_Annotator(language = "en", kind = "location")
+
+pipeline <- list(sentenceAnnotator,
+                 wordAnnotator,
+                 characterAnnotatorEN,
+                 locationAnnotatorEN)
+```
+
+```{r NER_chunker, message=FALSE, include=FALSE}
+#create empty df
+full_df = as.data.frame(NULL)
+chunk_size = 10000
+
+for (j in 1:nrow(louisa_and_twain_text_str)) {
+  #get number of chunks
+  chunk <- nchar(louisa_and_twain_text_str$text[j]) %/% chunk_size
+  text <- unlist(louisa_and_twain_text_str$text[j])
+  text <- as.String(text)
+  
+  #Loop runs through the text section by section and reads each chunk into a df
+  
+  for (i in 1:chunk) {
+    print(paste0(
+      "Processing title: ",
+     louisa_and_twain_text_str$title[j],
+      " - section ",
+      i,
+      " of ",
+      chunk
+    ))
+    temp_df = NULL
+    
+    if (i == 1) {
+      m = 1
+    }
+    
+    if (i == chunk) {
+      m = n + 1
+      n = (nchar(text))
+    }
+    else{
+      n <- m + chunk_size
+    }
+    
+    temp_string = text[m, n]
+    
+    temp_ann <- NLP::annotate(temp_string, pipeline)
+    
+    temp_df <-  temp_ann %>%
+      as.data.frame %>% 
+      filter(type != "word")
+    
+    temp_df <- temp_df %>%
+      mutate(words = str_sub(
+        as.character(temp_string),
+        start = temp_df$start,
+        end = temp_df$end
+      )) %>%
+      unnest_wider(features)
+    
+    temp_df <- temp_df %>%
+      mutate(author = louisa_and_twain_text_str$author[j], title = louisa_and_twain_text_str$title[j]) 
+      #This is where you would include your added variable
+      
+    
+    #stitch it all together
+    full_df <- full_df %>%
+      bind_rows(temp_df)
+    
+    m <- m + chunk_size
+  }
+}
+
+```
+
+```{r create_backup, include=FALSE}
+full_df_backup <- full_df
+```
+
+```{r rough_clean, include=FALSE}
+full_df <-  full_df %>%
+  mutate(words = str_remove_all(words, '[:punct:]'))
+```
+
+```{r reshape_df, include=FALSE}
+full_df <- full_df %>%
+  relocate(c("author", "title"), .before = 1) %>%
+  select(-id,-constituents) 
+```
+
+```{r backup_annotations, results='hide', include=FALSE}
+write_csv(full_df, "annotation_backup.csv") 
+```
+```{r split_sentence_entity, include=FALSE}
+df1 <- full_df %>%
+  filter(type == "sentence") %>%
+  mutate(sentence_nr = row_number()) %>%
+  select(author, title, words, sentence_nr) %>%
+  rename(sentence = words)
+
+df2 <-  full_df %>%
+  filter(type == "entity") %>%
+  mutate(record = row_number()) %>%
+  select(words, kind)
+```
+```{r computational_cleaning, include=FALSE}
+df2 <- df2 %>%
+  mutate(words = str_replace_all(words, "Dear ", "")) %>%
+  mutate(words = str_replace_all(words, "Young ", "")) %>%
+  mutate(words = str_replace_all(words, "Ah", "")) %>%
+  mutate(words = str_replace_all(words, "Oh", "")) %>%
+  mutate(words = str_trim(words, side = "both")) %>%
+  mutate(words = str_trim(gsub("[A-Z]{2,}", "", words))) %>%
+  mutate(words = str_squish(words)) %>%
+  mutate_all( ~ ifelse(. %in% c("N/A", "null", ""), NA, .)) %>%
+  drop_na() %>%
+  dplyr::filter(nchar(words) > 2) %>%
+  distinct()
+
+capital_stopwords <-
+  as.data.frame(str_to_title(stop_words$word)) %>%
+  rename(words = 1)
+
+df2 <- df2 %>%
+  anti_join(capital_stopwords)
+```
+
+```{r backup_join, include=FALSE}
+write_csv(df2, "pre_join_entities.csv")
+```
+
+```{r load_cleaned_data, include=FALSE}
+#Prep the data
+pre_join <- read_csv("pre_join_entities.csv", na = "NA")
+```
+```{r limit_join_words, include=FALSE}
+pre_join <- pre_join %>%
+  select(words, kind) %>%
+  drop_na()  %>%
+  distinct()
+```
+```{r match_dataframes, include=FALSE}
+#Execute a SQL query
+full_join_df <- sqldf("SELECT *
+      FROM df1
+      LEFT JOIN pre_join ON df1.sentence LIKE '%' || pre_join.words || '%'")
+
+full_join_df <- full_join_df %>%
+  distinct()
+```
+
+
+```{r raw, include=FALSE}
+write_csv(full_join_df, "entities_raw.csv")
+```
+
+```{r cleaned_entities_raw, include=FALSE}
+clean_entities <- read.csv("entities_raw_cleaned_final4.csv")
+```
+
+```{r unnest, include=FALSE}
+entities_unnest <- clean_entities %>%
+  unnest_tokens(word, sentence)
+```
+
+```{r remove_stopwords, include=FALSE}
+entities_unnest <- entities_unnest %>%
+  anti_join(stop_words)
+```
+```{r message=FALSE, include=FALSE}
+#create sentiment table
+entities_sentiment <- entities_unnest %>%
+  group_by(author, title) %>%
+  inner_join(get_sentiments("nrc")) %>%
+  count(sentence_nr, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
+```
+```{r message=FALSE, include=FALSE}
+entities_matches_sentiment <- entities_unnest %>%
+  inner_join(entities_sentiment) %>%
+  distinct_at(vars(-word))  
+```
+```{r message=FALSE, include=FALSE}
+ner_total_sentiment <- entities_matches_sentiment %>%
+  group_by(author, title, words, kind) %>%
+  summarise(total = mean(sentiment))  
+```
+```{r message=FALSE, include=FALSE}
+ner_total_sentiment %>%
+  group_by(title) %>%
+  filter(kind == "location") %>%
+  top_n(4) %>%
+  mutate(words = reorder(words, total)) %>%
+  ggplot(aes(words, y = total, fill = title)) +
+  geom_col() +
+  facet_wrap(~ title, scales = "free") +
+  coord_flip()
+```
+
+```{r message=FALSE, include=FALSE}
+ner_total_sentiment %>%
+  group_by(author) %>%
+  filter(kind == "location") %>%
+  top_n(4) %>%
+  mutate(words = reorder(words, total)) %>%
+  ggplot(aes(words, y = total, fill = title)) +
+  geom_col() +
+  facet_wrap(~ title, scales = "free") +
+  coord_flip()
+```
+
+```{r message=FALSE, include=FALSE}
+ner_total_sentiment %>%
+  group_by(title) %>%
+  filter(kind == "location") %>%
+  top_n(-5) %>%
+  mutate(words = reorder(words, (desc(total)))) %>%
+  ggplot(aes(words, y = total, fill = title)) +
+  geom_col() +
+  facet_wrap(~ title, scales = "free") +
+  coord_flip()
+```
+
+```{r radar_plot_total_1, message=FALSE, include=FALSE, fig.align='center'}
+##locations surrounded by most emotion words by title
+radar_facet <- entities_matches_sentiment %>%
+  select(-positive, -negative, -sentiment) %>% #drop out the unnecessary columns
+  filter(kind == "location") %>%
+  group_by(title, words, kind) %>%
+  summarise(across(anger:trust, sum)) %>%
+  mutate(total = rowSums(across(where(is.numeric))))  %>%
+  arrange(desc(total)) %>%
+  head(6)  %>% #Change number to include more or fewer entities
+  mutate(across(anger:trust, .fns = ~ round((. / total) * 100))) %>%
+  select(-total,-kind)
+
+ggRadar(
+  data = radar_facet,
+  mapping = aes(color = title, facet = words),
+  rescale = FALSE,
+  interactive = TRUE,
+  use.label = TRUE,
+  size = 2,
+  legend.position = "right"
+)
+```
+
+
+```{r radar_plot_total, message=FALSE, include=FALSE, fig.align='center'}
+##locations surrounded by most emotion words by author
+radar_facet <- entities_matches_sentiment %>%
+  select(-positive, -negative, -sentiment) %>% #drop out the unnecessary columns
+  filter(kind == "location") %>%
+  group_by(author, words, kind) %>%
+  summarise(across(anger:trust, sum)) %>%
+  mutate(total = rowSums(across(where(is.numeric))))  %>%
+  arrange(desc(total)) %>%
+  head(6)  %>% #Change number to include more or fewer entities
+  mutate(across(anger:trust, .fns = ~ round((. / total) * 100))) %>%
+  select(-total,-kind)
+
+ggRadar(
+  data = radar_facet,
+  mapping = aes(color = author, facet = words),
+  rescale = FALSE,
+  interactive = TRUE,
+  use.label = TRUE,
+  size = 2,
+  legend.position = "right"
+)
+```
+
+
+```{r message=FALSE, include=FALSE}
+##locations with most negative sentiments
+radar_facet_sentiment <- entities_matches_sentiment %>%
+  #Change filter to locations for locations
+  filter(kind == "location") %>%
+  group_by(title, words, kind) %>%
+  summarise(across(anger:sentiment, sum)) %>%
+  arrange(desc(sentiment))  %>%
+  tail(6)  %>% #Change number to include more or fewer entities
+  select(-positive, -negative, -sentiment, -kind)
+
+ggRadar(
+  data = radar_facet_sentiment,
+  mapping = aes(color = title, facet = words),
+  rescale = FALSE,
+  interactive = TRUE,
+  use.label = TRUE,
+  size = 2,
+  legend.position = "right"
+)
+```
+
+```{r message=FALSE, include=FALSE}
+radar_facet_sentiment <- entities_matches_sentiment %>%
+  filter(kind == "location") %>%
+  group_by(title, words, kind) %>%
+  summarise(across(anger:sentiment, sum)) %>%
+  arrange(desc(sentiment))  %>%
+  head(6)  %>% #Change number to include more or fewer entities
+  select(-positive, -negative, -sentiment, -kind)
+
+ggRadar(
+  data = radar_facet_sentiment,
+  mapping = aes(color = title, facet = words),
+  rescale = FALSE,
+  interactive = TRUE,
+  use.label = TRUE,
+  size = 2,
+  legend.position = "right"
+  )
+```
+
+To further understand the sentiments surrounding locations, we used the ‘Natural Language Processing (NLP)’ and ‘Named Entity Recognition (NER)’ tools. Since the bag-of-words approach takes away a lot from the understanding of a text, we chose the NLP and NER approaches to do a more complex analysis of our corpus. We carried out the process on the ‘NRC’ lexicon, specifically for ‘locations’ in order to see: which locations are surrounded with the most emotional words, which places have the most positive and negative sentiments surrounding them, and whether Alcott or Twain writes more emotionally about space.
+
+Our intuition behind using this tool was two-fold. Firstly, our primary lexicon for domestic and outdoor spaces considers material objects like ‘bed’, ‘sofa’, etc. for indoors and ‘sea’, ‘hills’, etc. for outdoors. However, the NER tool focuses on cities, states, countries and even street names. This aids our understanding of sentiments around locations, in a larger context. Secondly, considering the results of our primary sentiment analysis revealed that Twain’s overarching writing surrounding space is negative, whereas the contrary is true for Alcott, we used the NER tool to strengthen that result. 
+
+The process we followed included importing the data, cleaning it through R as well as manually, in order to remove several overlaps, and then processing them to produce visualizations for the locations and surrounding sentiments. This proved to be a highly tedious process, as we went down from 250,000 entries to about 3,500 entries through the filtering process; and after multiple trial and errors arrived at our clean data. This data, however, still possesses inconsistencies, which we elaborate on in the reflection section.
+
+### Locations with most Positive emotions for Alcott and Twain
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+##author-wise most positive
+radar_facet_sentiment <- entities_matches_sentiment %>%
+  #Change filter to locations for locations
+  filter(kind == "location") %>%
+  group_by(author, words, kind) %>%
+  summarise(across(anger:sentiment, sum)) %>%
+  arrange(desc(sentiment))  %>%
+  head(6)  %>% #Change number to include more or fewer entities
+  select(-positive, -negative, -sentiment, -kind)
+
+ggRadar(
+  data = radar_facet_sentiment,
+  mapping = aes(color = author, facet = words),
+  rescale = FALSE,
+  interactive = TRUE,
+  use.label = TRUE,
+  size = 2,
+  legend.position = "right"
+)
+```
+
+### Locations with most Negative emotions for Alcott and Twain
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+##author-wise most negative
+radar_facet_sentiment <- entities_matches_sentiment %>%
+  #Change filter to locations for locations
+  filter(kind == "location") %>%
+  group_by(author, words, kind) %>%
+  summarise(across(anger:sentiment, sum)) %>%
+  arrange(desc(sentiment))  %>%
+  tail(6)  %>% #Change number to include more or fewer entities
+  select(-positive, -negative, -sentiment, -kind)
+
+ggRadar(
+  data = radar_facet_sentiment,
+  mapping = aes(color = author, facet = words),
+  rescale = FALSE,
+  interactive = TRUE,
+  use.label = TRUE,
+  size = 2,
+  legend.position = "right"
+)
+```
+
+The two data visualizations show the locations with highest positive and negative emotions that both Alcott and Twain write about. We observe that Twain dominates the emotional space in terms of locations, for both positive and negative emotions. The sentiment of trust dominates the positive emotions, with some cities being collocated with joy and anticipation as well. The sentiments of sadness, disgust and fear dominate the negative space.
+
+Both Alcott and Twain talk positively of the USA. Twain further writes positively about major east and west coast cities of the USA like New York and Washington, as well as England. For Alcott, the second most positively talked about location surprisingly turns up to be China. On a deeper manual analysis of the same, we inspected the usage of China in the sentences for Alcott, and understood the context to not be of the space, but that of china vases, dish sets, closet, etc. While it skews our location analysis, it does reflect on Alcott being an upper-middle class woman and her association of positive sentiments with domestic materials.
+
+Looking at the highest negative emotions, Twain associates feelings of disgust, sadness and fear with smaller US states and its cities concentrated in the middle eastern part of America. An outlier here is Chile, which on further manual sentence-wise analysis is a flaw of old English usage in Twain’s works, wherein ‘Chilen’ is used to refer to children. 
+
+While Twain dominates both emotional spheres, the fact that the most negative emotional collocations are more diverse (includes different states like Arkansas, Mississippi, Massachusetts) compared to the positive emotional collocations, strengthens the first data visualization, which indicated Twain’s writing tends to be on the negative side. Other possible reasons as to why the visualizations sway more towards Twain could also be a testament to Twain’s works being more outdoors-y than Alcott’s, wherein they refer to different locations in a higher frequency than Alcott. 
+
 ## Conclusion
 
+We find proof for a part of our hypothesis - that Alcott writes positively about the domestic space and Twain writes negatively about the domestic space. However, we don’t find a contrast in sentiment between the two spaces. It is not the case that a positively depicted outdoor space implies a negatively depicted indoor space, as one might expect. In fact, it seems to be that the overall direction of sentiment stays the same irrespective of space. Twain, who writes negatively about the domestic space also writes negatively about the outdoor space, suggesting that he writes negatively overall. This finding makes sense given his works occupy themes such as exploitation, slavery and surival. Alcott, who writes positively about the domestic space does write positively about the outdoor space overall, however, it is with a reduced intensity. Our findings can also be suggestive of not just appropriate spaces that women’s writing could occupy but also appropriate sentiment with which they could write about them. 
+
 ## Reflection
+
+Our research is, primarily, influenced and limited by our choice of lexicon. This impacts our study in a number of ways. First, some words cannot be completely classified as indoor or outdoor. “Water”, for example, can be associated with a river and a jug. Similarly, “wild”, although associated with the outdoors, can also be used to describe a person’s behaviour. Second, it may be possible that words that we have intuitively placed in the lexicon are not being used in the concept of space at all. For example, “chair” could be a position/office as much as a piece of furniture. Third, and common to digital studies of literary texts, the mention of a word does not imply its physical existence. Considering our research deals with the concept of physical space, this is a significant limitation. Moreover, different authors use different words. The words an author uses to describe the domestic space might be vastly different from what another uses, given the difference in socio-economic backgrounds. A domestic space doesn't have to necessarily be populated with goods of domestic use to be domestic. A more populated space might reflect a more privileged domestic space, but a sparsely populated one is domestic nonetheless. However, a proxy lexicon takes lack of domestic objects to mean lack of domestic space, which biases the study. This manual creation of the lexicon also poses a problem when interpreting relative frequencies of words used, for the reasons outlined above.
+
+The sentiment analysis of these works also relies heavily on the predefined lexicons available. We can not with a high degree of certainty say that the ‘bing’ or ‘NRC’ lexicons are an accurate reflection of the sentiment the author meant to attach to the respective words. Another shortcoming we encountered while conducting sentiment analysis was the flaw of assigning quantitative values to qualitative features.
+
+The NER process, as mentioned before, was tedious as well as time consuming. Cleaning the data and scaling up the NER process for about 20 books with several character and location names, manual removal of them becomes reiterative and prone to error. Additionally, words like ‘Washington’ are locations, but also characters in the works of these authors, which also skews the sentiment analysis. There are certain unique constraints which we faced, for example: China is identified as a place in the NER process, although in Alcott’s works most of the references to China are in terms of ‘china vases’ and ‘china closet’. For Twain, Chile was not a reference to a place but a misconstrued interpretation of old English words by the software. Therefore, there are many ways in which computers lack in their reading of a text, which we were able to experience on a closer manual analysis of its creation of datasets.
