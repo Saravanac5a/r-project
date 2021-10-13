@@ -432,8 +432,6 @@ louisa_and_twain_text <-louisa_and_twain_clean %>%
   ungroup()
 ```
 
-#### Convert to nested String object
-
 ```{r create_nested_string, include=FALSE}
 louisa_and_twain_text_str <- louisa_and_twain_text %>%
   group_by(title) %>%
