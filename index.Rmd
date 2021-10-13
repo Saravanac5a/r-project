@@ -1,7 +1,8 @@
 ---
-title: "R Project"
+title: "Inside Out"
 author: "Ananya Jain, Mansi Agarwal, Saravana Chilamakuri"
 date: "13/10/2021"
+runtime: shiny
 output: html_document
 ---
 
@@ -109,7 +110,7 @@ all_authors_frequency %>%
   geom_histogram()
 ```
 
-## Introduction and Research Question
+## Introduction
 
 Our research question draws from a <a href="https://elijah-samuel.github.io/voyant_project/">previous project</a> that found Alcott’s work to be more heavily populated with things that characterise the indoors, whereas Twain’s work was characterised by the outdoors. These findings were in line with the notion that women writing in the 19th century were more concerned with the domestic space as opposed to men who occupied themselves with more important things. While we know what space male and female authors occupied, we don’t necessarily know the sentiment surrounding that space. This paper is a step in that direction. It attempts to unpack the sentiment surrounding the indoor and outdoor space in the works of Louisa May Alcott and Mark Twain. It’s also useful in studying whether sentiment around indoor and outdoor functions as a binary. One might expect a positive portrayal of the indoor space to coincide with a negative portrayal of the outdoor space, and vice versa. While the results of a comparison between Twain and Alcott alone cannot be extrapolated to all the authors of that time, it is still useful as preliminary results can motivate studies at a larger scale and answer questions previously unanswered.
 
@@ -323,6 +324,7 @@ sentiment_table %>%
   labs(title = "Positive and Negative Sentiment by Concept",
        x = "Overall Sentiment",
        y = "author") +
+  scale_fill_brewer(palette = "Dark2") +
   coord_flip() +
   theme_hc()
 ```
